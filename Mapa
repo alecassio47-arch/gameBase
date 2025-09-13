@@ -1,0 +1,220 @@
+<!doctype html>
+
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Eryndor — Mapa Interativo</title>
+  <style>
+    :root{--bg:#0b1220;--card:#0f1724;--accent:#ffd166;--muted:#9aa6b2}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#071126 0%, #081226 60%);color:#e6eef6}
+    .wrap{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:22px;max-width:1200px;margin:18px auto}
+    .map-card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08));padding:18px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+    h1{margin:0 0 10px;font-size:20px}
+    svg{width:100%;height:720px;border-radius:8px;background:linear-gradient(180deg,#072034, #021018);display:block}
+    .node{cursor:pointer;transition:transform .12s ease}
+    .node:hover{transform:scale(1.06)}
+    .node-circle{fill:#112;stroke:var(--accent);stroke-width:2}
+    .node-label{fill:#bfe6ff;font-size:12px}
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));padding:16px;border-radius:12px;min-height:240px}
+    .meta{font-size:13px;color:var(--muted);margin-bottom:8px}
+    .stat{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:999px;font-size:13px}
+    .btn{display:inline-block;padding:10px 12px;border-radius:8px;background:var(--accent);color:#052222;font-weight:700;text-decoration:none;margin-top:10px}
+    .footer{font-size:12px;color:var(--muted);margin-top:12px}
+    pre{background:#04121b;padding:8px;border-radius:8px;overflow:auto;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="map-card">
+      <h1>Eryndor — Mapa Interativo</h1>
+      <p class="meta">Clique nos locais do mapa para ver descrições, inimigos e enigmas. Este arquivo é estático e pode ser hospedado no GitHub Pages.</p><!-- SVG MAP -->
+  <svg id="map" viewBox="0 0 1000 1200" preserveAspectRatio="xMidYMid meet">
+    <!-- Background decorative shapes -->
+    <defs>
+      <linearGradient id="g1" x1="0" x2="1">
+        <stop offset="0%" stop-color="#112a3a" stop-opacity="0.6" />
+        <stop offset="100%" stop-color="#05121a" stop-opacity="0.9" />
+      </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="1000" height="1200" fill="url(#g1)" rx="10"/>
+
+    <!-- Path lines -->
+    <polyline points="500,120 500,300 500,460 500,640 500,820 500,980" fill="none" stroke="#234a52" stroke-width="6" stroke-linecap="round" stroke-dasharray="8 8"/>
+
+    <!-- Nodes -->
+    <!-- 1 Veyra -->
+    <g class="node" data-id="1" transform="translate(500,120)">
+      <circle class="node-circle" r="34" />
+      <text class="node-label" x="0" y="4" text-anchor="middle">Veyra</text>
+    </g>
+
+    <!-- 2 Floresta -->
+    <g class="node" data-id="2" transform="translate(500,300)">
+      <circle class="node-circle" r="34" />
+      <text class="node-label" x="0" y="4" text-anchor="middle">Floresta</text>
+    </g>
+
+    <!-- 3 Montanha -->
+    <g class="node" data-id="3" transform="translate(500,460)">
+      <circle class="node-circle" r="34" />
+      <text class="node-label" x="0" y="4" text-anchor="middle">Montanha</text>
+    </g>
+
+    <!-- 4 Ruínas -->
+    <g class="node" data-id="4" transform="translate(500,640)">
+      <circle class="node-circle" r="34" />
+      <text class="node-label" x="0" y="4" text-anchor="middle">Ruínas</text>
+    </g>
+
+    <!-- 5 Fonte -->
+    <g class="node" data-id="5" transform="translate(500,820)">
+      <circle class="node-circle" r="34" />
+      <text class="node-label" x="0" y="4" text-anchor="middle">Fonte</text>
+    </g>
+
+    <!-- 6 Castelo -->
+    <g class="node" data-id="6" transform="translate(500,980)">
+      <circle class="node-circle" r="34" />
+      <text class="node-label" x="0" y="4" text-anchor="middle">Castelo</text>
+    </g>
+
+    <!-- small decorative labels -->
+    <text x="640" y="110" fill="#87c6e8" font-size="18">Eryndor</text>
+  </svg>
+
+</div>
+
+<aside class="panel">
+  <div id="info">
+    <h2 id="title">Clique em um local</h2>
+    <p id="desc" class="meta">Informações sobre a área aparecerão aqui.</p>
+    <div class="stat" id="stats"></div>
+    <div id="extras"></div>
+    <a id="start-btn" class="btn" href="#" style="display:none">Marcar como Visitado</a>
+    <div class="footer">Arquivos: coloque este arquivo no GitHub e ative GitHub Pages para publicar.</div>
+  </div>
+</aside>
+
+  </div>  <script>
+    // Dados do Mapa — estruturas simples
+    const nodes = {
+      1: {
+        name: 'Vila de Veyra',
+        desc: 'Vila inicial — os moradores pedem ajuda. Recebe a missão de restaurar as Pedras de Lúmen.',
+        enemies: [],
+        enigma: null,
+        reward: null
+      },
+      2: {
+        name: 'Floresta Sombria',
+        desc: 'Árvores com runas e sombras que sussurram. Um caminho bloqueado por raízes e magia.',
+        enemies: [{name:'Sombra Errante', hp:40, str:6, weakness:'Luz mágica'}],
+        enigma: {title:'Fogueira das Runas', hint:'Acenda a fogueira na árvore que mais brilha.'},
+        reward: {type:'Pedra de Lúmen menor', bonus:{hp:10,str:2}}
+      },
+      3: {
+        name: 'Montanha da Chama',
+        desc: 'Cavernas quentes e tochas antigas. O Portão da Chama guarda o caminho.',
+        enemies: [{name:'Gárgula de Pedra', hp:80, str:12, weakness:'Fogo mágico'}],
+        enigma: {title:'Portão da Chama', hint:'Tochas: Vermelho → Azul → Amarelo → Verde'},
+        reward: {type:'Pedra de Lúmen média', bonus:{hp:15,str:4}}
+      },
+      4: {
+        name: 'Ruínas do Espelho',
+        desc: 'Espelhos gigantes que mostram versões distorcidas de você.',
+        enemies: [{name:'Sombra Errante', hp:40, str:6, weakness:'Luz mágica'},{name:'Sombra Errante', hp:40, str:6, weakness:'Luz mágica'}],
+        enigma: {title:'Espelho das Verdades', hint:'Nomeie os reflexos: Coragem, Sabedoria, Lealdade'},
+        reward: {type:'Pedra de Lúmen média', bonus:{hp:15,str:4}}
+      },
+      5: {
+        name: 'Fonte dos Ecos',
+        desc: 'Águas antigas que repetem tudo ao contrário.',
+        enemies: [{name:'Sombra Errante', hp:40, str:6, weakness:'Luz mágica'},{name:'Sombra Errante', hp:40, str:6, weakness:'Luz mágica'},{name:'Sombra Errante', hp:40, str:6, weakness:'Luz mágica'}],
+        enigma: {title:'Senha Invertida', hint:'Diga a senha ao contrário (Lúmen → Nemúl)'},
+        reward: {type:'Pedra de Lúmen grande', bonus:{hp:20,str:5}}
+      },
+      6: {
+        name: 'Castelo Corrompido',
+        desc: 'Sede do Lorde das Sombras. As Pedras de Lúmen devem ser usadas aqui.',
+        enemies: [{name:'Lorde das Sombras', hp:150, str:20, weakness:'Reflexão da luz das Pedras de Lúmen'}],
+        enigma: null,
+        reward: {type:'Restauração', bonus:{hp:0,str:0}}
+      }
+    };
+
+    const infoTitle = document.getElementById('title');
+    const infoDesc = document.getElementById('desc');
+    const stats = document.getElementById('stats');
+    const extras = document.getElementById('extras');
+    const startBtn = document.getElementById('start-btn');
+
+    function showNode(id){
+      const n = nodes[id];
+      infoTitle.textContent = n.name;
+      infoDesc.textContent = n.desc;
+
+      // Stats
+      stats.innerHTML = '';
+      if(n.enemies && n.enemies.length){
+        const en = document.createElement('div');
+        en.className='chip';
+        en.textContent = 'Inimigos: ' + n.enemies.map(e => e.name).join(', ');
+        stats.appendChild(en);
+      }
+      if(n.enigma){
+        const ch = document.createElement('div');
+        ch.className='chip';
+        ch.textContent = 'Enigma: ' + n.enigma.title;
+        stats.appendChild(ch);
+      }
+      if(n.reward){
+        const r = document.createElement('div');
+        r.className='chip';
+        r.textContent = 'Recompensa: ' + n.reward.type;
+        stats.appendChild(r);
+      }
+
+      extras.innerHTML = '';
+      if(n.enigma){
+        const h = document.createElement('p');
+        h.style.marginTop='12px';
+        h.innerHTML = '<strong>Enigma:</strong> ' + n.enigma.title + '<br><em>'+n.enigma.hint+'</em>';
+        extras.appendChild(h);
+      }
+      if(n.enemies && n.enemies.length){
+        const list = document.createElement('div');
+        list.style.marginTop='12px';
+        list.innerHTML = '<strong>Detalhes dos inimigos:</strong>';
+        n.enemies.forEach(e=>{
+          const div = document.createElement('div');
+          div.style.marginTop='8px';
+          div.innerHTML = `<pre>${e.name} — HP: ${e.hp} • Força: ${e.str} • Fraqueza: ${e.weakness}</pre>`;list.appendChild(div);
+    });
+    extras.appendChild(list);
+  }
+
+  // show visit button
+  startBtn.style.display='inline-block';
+  startBtn.textContent = 'Marcar "'+n.name+'" como visitado';
+  startBtn.onclick = ()=>{
+    startBtn.textContent='Visitado ✓';
+    startBtn.style.opacity=0.7;
+    // simple save in localStorage
+    const visited = JSON.parse(localStorage.getItem('eryndor_visited')||'{}');
+    visited[id]=true; localStorage.setItem('eryndor_visited',JSON.stringify(visited));
+  }
+}
+
+// Attach click handlers
+document.querySelectorAll('.node').forEach(g=>{
+  g.addEventListener('click',()=> showNode(g.getAttribute('data-id')));
+});
+
+// On load, show Veyra
+showNode(1);
+
+  </script>
+</body>
+</html>
